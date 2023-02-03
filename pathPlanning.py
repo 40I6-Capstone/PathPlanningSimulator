@@ -3,11 +3,6 @@ import numpy as np;
 import scipy.interpolate as si
 import scipy.spatial as ss
 
-from PySide6.QtCore import Qt, Slot, Signal
-from PySide6.QtWidgets import (QMainWindow, QWidget, QTabWidget, QVBoxLayout, QHBoxLayout, 
-                                QPushButton, QLabel, QDialog, QDialogButtonBox, QSlider, QCheckBox,
-                                QSpinBox, QSpacerItem)
-import pyqtgraph as pg
 
 
 colors = ('b', 'g', 'r', 'c', 'm', 'y', 'k')
