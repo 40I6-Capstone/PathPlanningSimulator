@@ -26,7 +26,7 @@ pathPlan = PathPlanning(shape, env_data["crit_rad"], env_data["ugv_rad"], env_da
 
 #plot paths
 for path in pathPlan.paths:
-    plt.plot(path[:,0],path[:,1],'k-');
+    plt.plot(path.points[:,0],path.points[:,1],'k-');
 
 #display plot
 plt.xlabel('x');

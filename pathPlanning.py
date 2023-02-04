@@ -42,10 +42,14 @@ class TestShape:
         self.vertices = np.array(vertices);
         self.midpoints = np.array(midpoints);
         self.norms = np.array(norms);
-            
+
+class Path:
+    def __init__(self, points):
+        self.points = points;
+        self.length = np.sum(np.sqrt(np.diff(points[:,0])**2 + np.diff(points[:,1])**2))       
 class PathPlanning:
     def __init__(self, shape:TestShape, crit_rad, ugv_rad, spoke_len):
-        paths = [];
+        self.paths = [];
 
         # calculate the angle from the origin to the centre of the shape
         base_angle = math.atan(shape.centre[1]/shape.centre[0]);
@@ -121,9 +125,8 @@ class PathPlanning:
             cv = np.array(cv);
             path2 = self._b_spline(cv);
 
-            if len(paths) >= 2:
-                min_path_dist =  ss.distance.cdist(path2, paths[-2]).min();
-                print("Min Path Distance", len(paths), min_path_dist)
+            if len(self.paths) >= 2:
+                min_path_dist =  ss.distance.cdist(path2, self.paths[-2].points).min();
                 while(min_path_dist < 2*ugv_rad):
                     order += 1; 
                     ctl_ext = self._get_ext_coef(radius, dist, index_coef, order);
@@ -137,12 +140,12 @@ class PathPlanning:
                     cv[2] = np.array([sp_x_ext,sp_y_ext]);
 
                     path2 = self._b_spline(cv);
-                    min_path_dist =  ss.distance.cdist(path2, paths[-2]).min();
-                    print("Min Path Distance", len(paths), min_path_dist)
+                    min_path_dist =  ss.distance.cdist(path2, self.paths[-2].points).min();
 
             # concatenate the 3 path parts to get the complete path and add it to the path list 
-            paths.append(path1 + path2 + path3);
-        self.paths = np.array(paths);
+            path = Path(np.array(path1+path2+path3))
+            print(path.length)
+            self.paths.append(path);
     
     # function to get how much the control points should extend by from the anchor points
     def _get_ext_coef(self, radius, dist, index_coef, order):
