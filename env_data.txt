@@ -1,0 +1,5 @@
+{
+    "crit_rad" : 20,
+    "ugv_rad" : 3,
+    "spoke_len" : 5,
+}
