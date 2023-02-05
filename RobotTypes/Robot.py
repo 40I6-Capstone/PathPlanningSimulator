@@ -8,6 +8,7 @@ class Robot(ABC):
         self.pos = np.array([0,0])
         self.heading = 0
         self.path = np.array([[0,0]])
+        self.pathIndex = 0
         self.radius = radius
         self.nextPointIndex = 1
         self.isReturning = False
@@ -17,15 +18,24 @@ class Robot(ABC):
     @abstractmethod
     def update(self,dt):
         pass
+
+    def reset(self):
+        self.pathComplete = False
+        self.isReturning = False
+        self.nextPointIndex = 1
+        self.heading = 0
         
 
     # Set current position, passed as in a numpy array
     def setPos(self,point):
         self.pos = point
-
+        self.reset()
     # Set the path being tracked, passed as a 2d numpy array
-    def setPath(self,path):
+    def setPath(self,path,pathIndex):
         self.path = path
+        self.pathIndex = pathIndex
+        self.reset()
+        
 
     # Compute the distance between two points as a scalar distance
     def calcDist(self,p1,p2):
@@ -63,4 +73,8 @@ class Robot(ABC):
 
         return closestPoint;
 
-    
+    def getDistanceTo(self,point):
+        return self.calcDist(point,self.pos)
+
+    def checkCriticalRad(self, criticalRad):
+        return True if self.getDistanceTo(np.array([0,0])) < criticalRad else False

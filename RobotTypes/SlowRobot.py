@@ -9,14 +9,24 @@ class SlowRobot(Robot):
 
     def computeVelocity(self):
         heading = self.path[self.nextPointIndex] - self.pos
-        velocity = heading / np.linalg.norm(heading) * self.topSpeed
-        return velocity
+        norm =  np.linalg.norm(heading)
+        if(abs(norm) > 0.001):
+            velocity = heading / norm * self.topSpeed
+            return velocity
+        else:
+            raise Exception 
 
     def update(self,dt):
         # Create a vector from current position to next with a magnitude of velocity
         timeLeft = dt;
+        if(self.atNextPoint()):
+            self.incrementNextPoint()
         while timeLeft > 0 and not(self.pathComplete):
-            velocity = self.computeVelocity()
+            try:
+                velocity = self.computeVelocity()
+            except:
+                self.incrementNextPoint();
+                continue
             timeToNext = self.distToNextPoint()/np.linalg.norm(velocity)
             if timeToNext < timeLeft:
                 self.pos = self.pos + velocity * timeToNext

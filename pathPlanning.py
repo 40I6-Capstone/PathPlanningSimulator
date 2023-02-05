@@ -144,8 +144,9 @@ class PathPlanning:
 
             # concatenate the 3 path parts to get the complete path and add it to the path list 
             path = Path(np.array(path1+path2+path3))
-            print(path.length)
+            # print(f'Path {i} length: {path.length}')
             self.paths.append(path);
+            
     
     # function to get how much the control points should extend by from the anchor points
     def _get_ext_coef(self, radius, dist, index_coef, order):
