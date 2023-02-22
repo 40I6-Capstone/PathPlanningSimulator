@@ -3,9 +3,7 @@ from time import sleep
 import numpy as np
 from PathScheduler import PathScheduler
 from pathPlanning import (TestShape, PathPlanning)
-import matplotlib.pyplot as plt
 import ast
-import sys
 
 
 
@@ -21,6 +19,13 @@ class Sim:
         shape_data_str = shape_data_file.read();
         shape_data = ast.literal_eval(shape_data_str);
 
+        self.robotRad = 3 # Robot radius in meters
+        self.dt = 0.02 # Simulation timestep
+        self.time = 0.0 # Current Time in simulation
+        self.simTime = 15 # Total Simulation time
+        self.nodeCount = 3
+
+
 
         # TODO set test shape
         self.shape = TestShape(shape_data["x"], shape_data["y"], shape_data["sides"], shape_data["rad"]);
@@ -35,15 +40,9 @@ class Sim:
         env_data = ast.literal_eval(env_data_str);
 
         # TODO set 
-        self.pathPlan = PathPlanning(self.shape, env_data["crit_rad"], env_data["ugv_rad"], env_data["spoke_len"]);
+        self.pathPlan = PathPlanning(self.shape, env_data["crit_rad"], self.robotRad, env_data["spoke_len"]);
         
         ##############  NODE SETUP  ############## 
-
-        self.robotRad = 0.05 # Robot radius in meters
-        self.dt = 0.02 # Simulation timestep
-        self.time = 0.0 # Current Time in simulation
-        self.simTime = 15 # Total Simulation time
-        self.nodeCount = 3
 
         # slowR1 = SlowRobot.SlowRobot(robotRad,10)
         self.robots = []
@@ -60,9 +59,6 @@ class Sim:
             robot.setPath(pathPoints,0)
             # print(pathPoints)
             robot.setPos(pathPoints[0])
-
-        # temp
-        fig, ax = plt.subplots()
 
     # def animate(i):
     #     updateRobots()
@@ -89,9 +85,9 @@ class Sim:
 
     ##############  Simulation  ############## 
     # simEnd = False
-    def updateRobots(self):
-        global time
-        # print(f'Time: {time:.3f}')
+    def updateRobots(self, time=None):
+        if(time): self.time = time;
+        print(f'Time: {self.time:.3f}')
         for index,robot in enumerate(self.robots):
             # Move a robot
             # print(f'Node[{index}] Pos: {robot.pos}')
@@ -103,7 +99,7 @@ class Sim:
                 robot.setPath(pathPoints,newPathIndex)
                 robot.setPos(pathPoints[0])
 
-        time = time + self.dt
+        self.time = self.time + self.dt
         # print("---------------------")
 
 

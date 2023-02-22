@@ -78,3 +78,10 @@ class Robot(ABC):
 
     def checkCriticalRad(self, criticalRad):
         return True if self.getDistanceTo(np.array([0,0])) < criticalRad else False
+
+    def checkCollision(self, robots):
+        for robot in robots:
+            dist = self.getDistanceTo(robot.pos);
+            if dist < self.radius*2 and dist != 0.0:
+                return True;
+        return False;
