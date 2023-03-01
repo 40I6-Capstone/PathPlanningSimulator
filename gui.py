@@ -1,5 +1,6 @@
 import sys
 from sim import Sim
+from pathPlanning import PathPlanning
 from PySide6.QtCore import Qt, Slot, Signal
 from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QStyle, QVBoxLayout, QHBoxLayout, 
                                 QPushButton, QLabel, QDialogButtonBox, QSlider, QCheckBox,
@@ -13,6 +14,7 @@ from time import sleep
 
 class MapWindow(QMainWindow):
     updateRobotPosSignal = Signal();
+    updatePathSignal = Signal();
     def __init__(self, simulation: Sim):
         super().__init__();
         self.setWindowTitle("Path Planning Map");
@@ -49,13 +51,8 @@ class MapWindow(QMainWindow):
         self.shape_mid = self.mapPlot.plot(self.sim.shape.midpoints[:,0], self.sim.shape.midpoints[:,1], pen=None, symbolBrush=self.pointPen);
 
         self.pathsPlot = [];
-        for path in self.sim.pathPlan.paths:
-            self.pathsPlot.append(self.mapPlot.plot(path.points[:,0], path.points[:,1], pen=self.pathPen));
 
-        self.robotRadPlot = [];
-        robotRadPath = self.makeCirclePath(0, 0);
-        for robot in self.sim.robots:
-            self.robotRadPlot.append(self.mapPlot.plot(robotRadPath[:, 0], robotRadPath[:, 1], pen=self.validRobotRadPen));
+        self.robotRadPlot = [self.mapPlot.plot([],[], pen=self.validRobotRadPen) for x in range(0,self.sim.nodeCount)];
 
         self.robotPlot = self.mapPlot.plot([],[], pen=None, symbol="+");
 
@@ -88,6 +85,7 @@ class MapWindow(QMainWindow):
         self.showMaximized();
 
         self.updateRobotPosSignal.connect(self.updateRobotPos);
+        self.updatePathSignal.connect(self.updatePath);
 
         self.startSim();
 
@@ -96,6 +94,17 @@ class MapWindow(QMainWindow):
         self.simThread.start();
     
     def animate(self):
+        #get environment data from file
+        env_data_file = open("env_data.txt", "r");
+        env_data_str = env_data_file.read();
+        env_data = ast.literal_eval(env_data_str);
+
+        self.pathPlan = PathPlanning();
+        self.pathPlan.planPath(self.sim.shape, env_data["crit_rad"], self.sim.robotRad, env_data["spoke_len"], self.updatePathSignal);
+
+        self.sim.setPath(self.pathPlan);
+        self.sim.nodeSetup();
+        
         while(self.sim.time < self.sim.simTime):
             if(self.ifSliderDragged):
                 # print(self.slider.value()*self.sim.dt);
@@ -117,8 +126,15 @@ class MapWindow(QMainWindow):
         return (np.array(points));
 
     @Slot()
+    def updatePath(self):
+        for index,path in enumerate(self.pathPlan.paths):
+            if(index < len(self.pathsPlot)):
+                self.pathsPlot[index].setData(path.points[:,0], path.points[:,1], pen=self.pathPen);
+            else:
+                self.pathsPlot.append(self.mapPlot.plot(path.points[:,0], path.points[:,1], pen=self.pathPen));
+
+    @Slot()
     def updateRobotPos(self):
-        print("updated plot");
         linspace = np.linspace(0, 100, len(self.sim.robots)).astype(int);
         brushes = self.robotColourTable[linspace];
         xpoints = [];

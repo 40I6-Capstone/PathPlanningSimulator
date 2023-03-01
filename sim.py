@@ -19,7 +19,7 @@ class Sim:
         shape_data_str = shape_data_file.read();
         shape_data = ast.literal_eval(shape_data_str);
 
-        self.robotRad = 3 # Robot radius in meters
+        self.robotRad = 5 # Robot radius in meters
         self.dt = 0.02 # Simulation timestep
         self.time = 0.0 # Current Time in simulation
         self.simTime = 15 # Total Simulation time
@@ -30,18 +30,10 @@ class Sim:
         # TODO set test shape
         self.shape = TestShape(shape_data["x"], shape_data["y"], shape_data["sides"], shape_data["rad"]);
 
-        # plot shape and midpoints
-        # plt.plot(shape.vertices[:,0],shape.vertices[:,1])
-        # plt.plot(shape.midpoints[:,0],shape.midpoints[:,1], 'o')
+    def setPath(self, path: PathPlanning):
+        self.pathPlan = path;
 
-        #get environment data from file
-        env_data_file =  open("env_data.txt", "r");
-        env_data_str = env_data_file.read();
-        env_data = ast.literal_eval(env_data_str);
-
-        # TODO set 
-        self.pathPlan = PathPlanning(self.shape, env_data["crit_rad"], self.robotRad, env_data["spoke_len"]);
-        
+    def nodeSetup(self):        
         ##############  NODE SETUP  ############## 
 
         # slowR1 = SlowRobot.SlowRobot(robotRad,10)
@@ -60,34 +52,11 @@ class Sim:
             # print(pathPoints)
             robot.setPos(pathPoints[0])
 
-    # def animate(i):
-    #     updateRobots()
-    #     ax.clear()
-    #     ax.plot(shape.vertices[:,0],shape.vertices[:,1])
-    #     ax.plot(shape.midpoints[:,0],shape.midpoints[:,1], 'o')
-    #     for path in pathPlan.paths:
-    #         ax.plot(path.points[:,0],path.points[:,1],'k-');
-
-        
-    #     colors = ['r','g','b','c','m','y']
-    #     for index, robot in enumerate(robots):
-    #         xpoints = []
-    #         ypoints = []
-    #         xpoints.append(robot.pos[0]) 
-    #         ypoints.append(robot.pos[1])
-    #         ax.plot(xpoints,ypoints, colors[index%len(colors)]+"x")
-
-
-    #     #display plot
-    #     plt.xlabel('x');
-    #     plt.ylabel('y');
-    #     fig.gca().set_aspect('equal', adjustable='box');
-
     ##############  Simulation  ############## 
     # simEnd = False
     def updateRobots(self, time=None):
         if(time): self.time = time;
-        print(f'Time: {self.time:.3f}')
+        # print(f'Time: {self.time:.3f}')
         for index,robot in enumerate(self.robots):
             # Move a robot
             # print(f'Node[{index}] Pos: {robot.pos}')

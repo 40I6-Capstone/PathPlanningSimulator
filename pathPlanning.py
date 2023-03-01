@@ -2,6 +2,7 @@ import math;
 import numpy as np;
 import scipy.interpolate as si
 import scipy.spatial as ss
+from time import sleep
 
 
 
@@ -47,10 +48,12 @@ class Path:
     def __init__(self, points):
         self.points = points;
         self.length = np.sum(np.sqrt(np.diff(points[:,0])**2 + np.diff(points[:,1])**2))       
-class PathPlanning:
-    def __init__(self, shape:TestShape, crit_rad, ugv_rad, spoke_len):
-        self.paths = [];
 
+class PathPlanning:
+    def __init__(self):
+        self.paths = [];
+        
+    def planPath(self, shape:TestShape, crit_rad, ugv_rad, spoke_len, signal):
         # calculate the angle from the origin to the centre of the shape
         base_angle = math.atan(shape.centre[1]/shape.centre[0]);
         # calculate how many paths we need to plan
@@ -58,7 +61,7 @@ class PathPlanning:
 
 
         # calculate the angle the ugv's will leave from the origin for its own lane
-        d_angle = 2*math.asin((1.05*ugv_rad/2)/crit_rad);
+        d_angle = 2*math.asin((1.05*(ugv_rad/2))/crit_rad);
 
         # calculate the radius of the inscribed circle for the shape
         radius = math.sqrt(math.pow((shape.midpoints[0][0]-shape.midpoints[int(num_of_paths/2)][0]),2)+math.pow((shape.midpoints[0][1]-shape.midpoints[int(num_of_paths/2)][1]),2))/2;
@@ -125,8 +128,13 @@ class PathPlanning:
             cv = np.array(cv);
             path2 = self._b_spline(cv);
 
-            if len(self.paths) >= 2:
-                min_path_dist =  ss.distance.cdist(path2, self.paths[-2].points).min();
+            # concatenate the 3 path parts to get the complete path and add it to the path list 
+            path = Path(np.array(path1+path2+path3))
+            self.paths.append(path);
+            signal.emit();
+            sleep(0.1);    
+            if len(self.paths) > 2:
+                min_path_dist =  ss.distance.cdist(path2, self.paths[-3].points[nop_1:-1]).min();
                 while(min_path_dist < 2*ugv_rad):
                     order += 1; 
                     ctl_ext = self._get_ext_coef(radius, dist, index_coef, order);
@@ -140,13 +148,14 @@ class PathPlanning:
                     cv[2] = np.array([sp_x_ext,sp_y_ext]);
 
                     path2 = self._b_spline(cv);
-                    min_path_dist =  ss.distance.cdist(path2, self.paths[-2].points).min();
+                    min_path_dist =  ss.distance.cdist(path2, self.paths[-3].points[nop_1:-1]).min();
 
-            # concatenate the 3 path parts to get the complete path and add it to the path list 
-            path = Path(np.array(path1+path2+path3))
-            # print(f'Path {i} length: {path.length}')
-            self.paths.append(path);
-            
+                    # concatenate the 3 path parts to get the complete path and add it to the path list 
+                    path = Path(np.array(path1+path2+path3))
+                    self.paths[-1] = path;
+                    signal.emit();
+                    sleep(0.1);    
+      
     
     # function to get how much the control points should extend by from the anchor points
     def _get_ext_coef(self, radius, dist, index_coef, order):
