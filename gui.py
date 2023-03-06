@@ -48,7 +48,6 @@ class MapWindow(QMainWindow):
         self.mapPlot.setLabel('bottom', 'X Position');
         self.mapPlot.showGrid(x=True,y=True);
         self.mapPlot.setAspectLocked(True);
-        self.mapPlot.setBackground(background=None);
 
         self.shape = self.mapPlot.plot(self.sim.shape.vertices[:,0], self.sim.shape.vertices[:,1], pen=self.shapePen);
         self.shape_mid = self.mapPlot.plot(self.sim.shape.midpoints[:,0], self.sim.shape.midpoints[:,1], pen=None, symbolBrush=self.pointPen);
@@ -74,6 +73,8 @@ class MapWindow(QMainWindow):
         self.slider.setValue(0);
         self.slider.setTickInterval(1);
         self.slider.valueChanged.connect(self.sliderUpdateValue);
+        self.time = 0.0;
+        
         self.ifSliderDragged = False;
 
         minVal = QLabel("0 sec");
@@ -108,16 +109,19 @@ class MapWindow(QMainWindow):
 
         self.sim.setPath(self.pathPlan);
         self.sim.nodeSetup();
+        self.sim.runSim();
         
-        while(self.sim.time < self.sim.simTime):
+        while(self.time < self.sim.simTime):
             if(self.ifSliderDragged):
-                # print(self.slider.value()*self.sim.dt);
-                self.sim.updateRobots(self.slider.value()*self.sim.dt);
+                self.time = self.slider.value()*self.sim.dt;
+                self.sim.getPos(self.time);
                 self.updateRobotPosSignal.emit();
                 self.ifSliderDragged = False;
             elif(self.isPlaying):
                 sleep(self.sim.dt);
-                self.sim.updateRobots();
+                self.time = self.time + self.sim.dt;
+                print("time",self.time);
+                self.sim.getPos(self.time);
                 self.updateRobotPosSignal.emit();
 
     def plot_crit_rad(self):
@@ -159,7 +163,7 @@ class MapWindow(QMainWindow):
 
         self.robotPlot.setData(xpoints,ypoints, symbolBrush=brushes);
         self.slider.blockSignals(True);
-        self.slider.setValue(int(self.sim.time/self.sim.dt));
+        self.slider.setValue(int(self.time/self.sim.dt));
         self.slider.blockSignals(False);
     
     @Slot()

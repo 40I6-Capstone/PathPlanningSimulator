@@ -59,6 +59,7 @@ class PathPlanning:
         # calculate how many paths we need to plan
         num_of_paths = len(shape.midpoints);
 
+        self.crit_rad = crit_rad;
 
         # calculate the angle the ugv's will leave from the origin for its own lane
         d_angle = 2*math.asin((1.05*(ugv_rad/2))/crit_rad);
@@ -181,4 +182,4 @@ class PathPlanning:
 
         # Calculate result
         return np.array(si.splev(u, (kv,cv.T,degree))).T.tolist();
-
+    

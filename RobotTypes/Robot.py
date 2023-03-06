@@ -13,6 +13,8 @@ class Robot(ABC):
         self.nextPointIndex = 1
         self.isReturning = False
         self.pathComplete = False
+        self.posArr = np.array([0,0]);
+
 
     # Update the robots position, dt seconds into the future
     @abstractmethod
@@ -35,6 +37,9 @@ class Robot(ABC):
         self.path = path
         self.pathIndex = pathIndex
         self.reset()
+
+    def setPosAtTime(self, i):
+        self.pos = self.posArr[i];
         
 
     # Compute the distance between two points as a scalar distance

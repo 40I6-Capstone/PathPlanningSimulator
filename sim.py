@@ -21,8 +21,8 @@ class Sim:
 
         self.robotRad = 5 # Robot radius in meters
         self.dt = 0.02 # Simulation timestep
-        self.time = 0.0 # Current Time in simulation
         self.simTime = 15 # Total Simulation time
+        self.time = np.arange(0, self.simTime, self.dt) # Current Time in simulation
         self.nodeCount = 3
 
 
@@ -54,32 +54,37 @@ class Sim:
 
     ##############  Simulation  ############## 
     # simEnd = False
-    def updateRobots(self, time=None):
-        if(time): self.time = time;
-        # print(f'Time: {self.time:.3f}')
-        for index,robot in enumerate(self.robots):
-            # Move a robot
-            # print(f'Node[{index}] Pos: {robot.pos}')
-            robot.update(self.dt)
-            # Update a nodes path, if the current one is complete
-            if(robot.pathComplete and robot.pathIndex < len(self.scheduler.assignedPathIndexes[index])-1 ):
-                newPathIndex = robot.pathIndex + 1
-                pathPoints = self.pathPlan.paths[self.scheduler.assignedPathIndexes[index][newPathIndex]].points
-                robot.setPath(pathPoints,newPathIndex)
-                robot.setPos(pathPoints[0])
-
-        self.time = self.time + self.dt
-        # print("---------------------")
-
-
-        global simEnd
-        # Check if all the robots are done
-        if(all(robot.pathComplete for robot in self.robots)):
-            # print("All nodes done")
-            # for index,robot in enumerate(robots):x
+    def runSim(self):
+        for currTime in self.time:
+            # print(f'Time: {self.time:.3f}')
+            for index,robot in enumerate(self.robots):
+                # Move a robot
                 # print(f'Node[{index}] Pos: {robot.pos}')
-            simEnd = True 
-        simEnd = False
+                robot.update(self.dt)
+                # Update a nodes path, if the current one is complete
+                if(robot.pathComplete and robot.pathIndex < len(self.scheduler.assignedPathIndexes[index])-1 ):
+                    newPathIndex = robot.pathIndex + 1
+                    pathPoints = self.pathPlan.paths[self.scheduler.assignedPathIndexes[index][newPathIndex]].points
+                    robot.setPath(pathPoints,newPathIndex)
+                    robot.setPos(pathPoints[0])
+            # print("---------------------")
+
+
+            global simEnd
+            # Check if all the robots are done
+            if(all(robot.pathComplete for robot in self.robots)):
+                # print("All nodes done")
+                # for index,robot in enumerate(robots):x
+                    # print(f'Node[{index}] Pos: {robot.pos}')
+                simEnd = True 
+            simEnd = False
+
+    def getPos(self, time):
+        result = np.where(abs(self.time - time) < 0.0001);
+        i = result[0][0];
+        for robot in self.robots:
+            robot.setPosAtTime(i);
+
 
 
 

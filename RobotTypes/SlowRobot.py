@@ -36,4 +36,5 @@ class SlowRobot(Robot):
                 timeLeft = timeLeft -   dt
             if(self.atNextPoint()):
                 self.incrementNextPoint()
+        self.posArr = np.vstack([self.posArr, self.pos]);
                 
