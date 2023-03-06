@@ -1,11 +1,8 @@
-import sys
 from sim import Sim
 from pathPlanning import PathPlanning
 from PySide6.QtCore import Qt, Slot, Signal
 from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QStyle, QVBoxLayout, QHBoxLayout, 
-                                QPushButton, QLabel, QDialogButtonBox, QSlider, QCheckBox,
-                                QSpinBox, QSpacerItem)
-from PySide6.QtGui import (QIcon)
+                                QPushButton, QLabel, QSlider)
 import ast
 import pyqtgraph as pg
 import numpy as np
@@ -21,6 +18,10 @@ class MapWindow(QMainWindow):
         self.__main = QWidget();
         self.setCentralWidget(self.__main);
 
+        #get environment data from file
+        env_data_file = open("env_data.txt", "r");
+        env_data_str = env_data_file.read();
+        self.env_data = ast.literal_eval(env_data_str);
 
         infoText = QLabel("*Changes will only affect UGV position, velocity, and heading plots");
         infoText.setObjectName("PlainText"); 
@@ -35,6 +36,7 @@ class MapWindow(QMainWindow):
 
         self.validRobotRadPen = pg.mkPen(color=(0, 100, 0), width=5);
         self.collisionRobotRadPen = pg.mkPen(color=(100, 0, 0), width=5);
+        self.critRadPen = pg.mkPen(color=(100, 0, 0), width=1, style=Qt.DashLine);
 
         robotColourMap = pg.colormap.getFromMatplotlib("rainbow");
         self.robotColourTable = robotColourMap.getLookupTable(0, 1, 101);
@@ -46,9 +48,14 @@ class MapWindow(QMainWindow):
         self.mapPlot.setLabel('bottom', 'X Position');
         self.mapPlot.showGrid(x=True,y=True);
         self.mapPlot.setAspectLocked(True);
+        self.mapPlot.setBackground(background=None);
 
         self.shape = self.mapPlot.plot(self.sim.shape.vertices[:,0], self.sim.shape.vertices[:,1], pen=self.shapePen);
         self.shape_mid = self.mapPlot.plot(self.sim.shape.midpoints[:,0], self.sim.shape.midpoints[:,1], pen=None, symbolBrush=self.pointPen);
+
+        critRadPoints = self.plot_crit_rad();
+        self.critRadPlot = self.mapPlot.plot(critRadPoints[:,0], critRadPoints[:,1], pen=self.critRadPen);
+
 
         self.pathsPlot = [];
 
@@ -94,13 +101,10 @@ class MapWindow(QMainWindow):
         self.simThread.start();
     
     def animate(self):
-        #get environment data from file
-        env_data_file = open("env_data.txt", "r");
-        env_data_str = env_data_file.read();
-        env_data = ast.literal_eval(env_data_str);
+
 
         self.pathPlan = PathPlanning();
-        self.pathPlan.planPath(self.sim.shape, env_data["crit_rad"], self.sim.robotRad, env_data["spoke_len"], self.updatePathSignal);
+        self.pathPlan.planPath(self.sim.shape, self.env_data["crit_rad"], self.sim.robotRad, self.env_data["spoke_len"], self.updatePathSignal);
 
         self.sim.setPath(self.pathPlan);
         self.sim.nodeSetup();
@@ -115,9 +119,16 @@ class MapWindow(QMainWindow):
                 sleep(self.sim.dt);
                 self.sim.updateRobots();
                 self.updateRobotPosSignal.emit();
-            
 
-    def makeCirclePath(self, xCent,yCent):
+    def plot_crit_rad(self):
+        points = [];
+        for angle in np.linspace(0, 2*np.pi, 100):
+            x = self.env_data["crit_rad"]*np.cos(angle);
+            y = self.env_data["crit_rad"]*np.sin(angle);
+            points.append([x, y]);
+        return (np.array(points));
+
+    def makeRobotCirclePath(self, xCent,yCent):
         points = [];
         for angle in np.linspace(0, 2*np.pi, 100):
             x = self.sim.robotRad*np.cos(angle) + xCent;
@@ -142,7 +153,7 @@ class MapWindow(QMainWindow):
         for index, robot in enumerate(self.sim.robots):
             xpoints.append(robot.pos[0]);
             ypoints.append(robot.pos[1]);
-            radPath = self.makeCirclePath(robot.pos[0],robot.pos[1]);
+            radPath = self.makeRobotCirclePath(robot.pos[0],robot.pos[1]);
             pen = self.collisionRobotRadPen if robot.checkCollision(self.sim.robots) else self.validRobotRadPen;
             self.robotRadPlot[index].setData(radPath[:,0], radPath[:,1], pen=pen);
 
