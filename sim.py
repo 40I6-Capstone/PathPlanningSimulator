@@ -14,7 +14,8 @@ class Sim:
         
         #get shape data from file
         # shape_data_file =  open(sys.argv[1], "r");
-        shape_data_file =  open("close_hex.txt", "r");
+        # shape_data_file =  open("close_hex.txt", "r");
+        shape_data_file =  open("far16.txt", "r");
 
         shape_data_str = shape_data_file.read();
         shape_data = ast.literal_eval(shape_data_str);

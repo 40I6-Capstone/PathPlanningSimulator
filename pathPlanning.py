@@ -87,14 +87,12 @@ class PathPlanning:
             if(i%2):
                 angle_off = i*d_angle;
                 shape_i = int(-(i+1)/2);
-                index_coef = (i-1)/2 + 0.2;
 
             else:
                 angle_off = -(i + 1)*d_angle;
                 shape_i = int(i/2);
-                index_coef = i/2 + 0.2;
             
-            ctl_ext = self._get_ext_coef(radius, dist, index_coef, order);
+            ctl_ext = self._get_ext_coef(ugv_rad);
 
             # calculate the points for inside the critical circle
             for j in range(nop_1):
@@ -135,11 +133,29 @@ class PathPlanning:
             signal.emit();
             sleep(0.1);    
             if len(self.paths) > 2:
-                min_path_dist =  ss.distance.cdist(path2, self.paths[-3].points[nop_1:-1]).min();
-                while(min_path_dist < 2*ugv_rad):
-                    order += 1; 
-                    ctl_ext = self._get_ext_coef(radius, dist, index_coef, order);
+                path_dist = ss.distance.cdist(path2, self.paths[-3].points[nop_1:-1]);
+                max_dist = path_dist.max();
+                coll_index =  np.where(path_dist < 2*ugv_rad);
+                while(len(coll_index[0]) > 0):
+                    # get the point where the collision will occur
+                    coll_point = path2[coll_index[0][0]];
+                    path2_np = np.array(path2);
+                    # coll_dist_to_rad = math.dist(coll_point, cv[0]);
+                    # coll_dist_to_spoke = math.dist(coll_point, self.paths[-3].points[-1]);
 
+
+                    # if(max_dist > 5*ugv_rad):
+                    #     too_far_index =  np.where(path2 == max_dist);
+                    #     too_far_point = path2[too_far_index[0][0]];
+                    #     too_far_dist_to_rad =  math.dist(too_far_point, cv[0]);
+                    #     too_far_dist_to_spoke =  math.dist(too_far_point, cv[3]);
+                    #     side = "rad" if (too_far_dist_to_spoke<too_far_dist_to_rad) else "spoke"
+                    
+                    coll_dist_to_rad = np.sum(np.sqrt(np.diff(path2_np[0:coll_index[0][0],0])**2 + np.diff(path2_np[0:coll_index[0][0],1])**2))
+                    coll_dist_to_spoke = 0.7*(np.sum(np.sqrt(np.diff(path2_np[coll_index[0][0]:-1,0])**2 + np.diff(path2_np[coll_index[0][0]:-1,1])**2)))
+                    side = "rad" if (coll_dist_to_rad<coll_dist_to_spoke) else "spoke"
+                    
+                    ctl_ext = self._get_ext_coef(ugv_rad, ctl_ext, side);
                     cr_x_ext = (crit_rad + ctl_ext[0])*math.cos((base_angle+angle_off));
                     cr_y_ext = (crit_rad + ctl_ext[0])*math.sin((base_angle+angle_off));
                     cv[1] = np.array([cr_x_ext,cr_y_ext]);
@@ -149,7 +165,8 @@ class PathPlanning:
                     cv[2] = np.array([sp_x_ext,sp_y_ext]);
 
                     path2 = self._b_spline(cv);
-                    min_path_dist =  ss.distance.cdist(path2, self.paths[-3].points[nop_1:-1]).min();
+                    path_dist = ss.distance.cdist(path2, self.paths[-3].points[nop_1:-1]);
+                    coll_index =  np.where(path_dist < 2*ugv_rad);
 
                     # concatenate the 3 path parts to get the complete path and add it to the path list 
                     path = Path(np.array(path1+path2+path3))
@@ -159,10 +176,16 @@ class PathPlanning:
       
     
     # function to get how much the control points should extend by from the anchor points
-    def _get_ext_coef(self, radius, dist, index_coef, order):
-            # TODO update how much the control points extends by
-            ctl_rad_ext = order*(0.1*radius + 0.05*dist + 0.5*index_coef);
-            ctl_spoke_ext = order*(0.2*radius + index_coef);
+    def _get_ext_coef(self, ugv_rad, ctl_ext=[], side=None):
+            if(len(ctl_ext) == 0):
+                ctl_rad_ext =  ugv_rad;
+                ctl_spoke_ext = ugv_rad;
+            else:
+                [ctl_rad_ext, ctl_spoke_ext] = ctl_ext;
+                if(side == "rad"):
+                    ctl_rad_ext = ctl_ext[0] + ugv_rad;
+                elif(side == "spoke"):
+                    ctl_spoke_ext = ctl_ext[1] + ugv_rad;
             return np.array([ctl_rad_ext, ctl_spoke_ext]);
 
     def _b_spline(self, cv):
