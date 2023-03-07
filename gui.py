@@ -52,9 +52,9 @@ class MapWindow(QMainWindow):
         self.shape = self.mapPlot.plot(self.sim.shape.vertices[:,0], self.sim.shape.vertices[:,1], pen=self.shapePen);
         self.shape_mid = self.mapPlot.plot(self.sim.shape.midpoints[:,0], self.sim.shape.midpoints[:,1], pen=None, symbolBrush=self.pointPen);
 
+        self.crit_rad = self.env_data["crit_rad"];
         critRadPoints = self.plot_crit_rad();
         self.critRadPlot = self.mapPlot.plot(critRadPoints[:,0], critRadPoints[:,1], pen=self.critRadPen);
-
 
         self.pathsPlot = [];
 
@@ -127,8 +127,8 @@ class MapWindow(QMainWindow):
     def plot_crit_rad(self):
         points = [];
         for angle in np.linspace(0, 2*np.pi, 100):
-            x = self.env_data["crit_rad"]*np.cos(angle);
-            y = self.env_data["crit_rad"]*np.sin(angle);
+            x = self.crit_rad*np.cos(angle);
+            y = self.crit_rad*np.sin(angle);
             points.append([x, y]);
         return (np.array(points));
 
@@ -142,9 +142,15 @@ class MapWindow(QMainWindow):
 
     @Slot()
     def updatePath(self):
+        if(not self.crit_rad == self.pathPlan.crit_rad):
+            self.crit_rad = self.pathPlan.crit_rad;
+            print("crit rad", self.crit_rad)
+            critRadPoints = self.plot_crit_rad();
+            self.critRadPlot.setData(critRadPoints[:,0], critRadPoints[:,1]);
+
         for index,path in enumerate(self.pathPlan.paths):
             if(index < len(self.pathsPlot)):
-                self.pathsPlot[index].setData(path.points[:,0], path.points[:,1], pen=self.pathPen);
+                self.pathsPlot[index].setData(path.points[:,0], path.points[:,1]);
             else:
                 self.pathsPlot.append(self.mapPlot.plot(path.points[:,0], path.points[:,1], pen=self.pathPen));
 

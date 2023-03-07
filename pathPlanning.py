@@ -64,13 +64,15 @@ class PathPlanning:
         # calculate the angle the ugv's will leave from the origin for its own lane
         d_angle = 2*math.asin((1.05*(ugv_rad/2))/crit_rad);
 
-        # calculate the radius of the inscribed circle for the shape
-        radius = math.sqrt(math.pow((shape.midpoints[0][0]-shape.midpoints[int(num_of_paths/2)][0]),2)+math.pow((shape.midpoints[0][1]-shape.midpoints[int(num_of_paths/2)][1]),2))/2;
-        dist = math.sqrt(math.pow(shape.centre[0],2)+math.pow(shape.centre[1],2));
+        # keep values within a certain angle
+        if(2* d_angle * num_of_paths > math.pi):
+            d_angle = math.pi / (3*num_of_paths);
+            self.crit_rad = 1.05*(ugv_rad/2)/math.sin(d_angle/2);
+
         
         # number of points for 1st part of the path (in the crit circle)
         nop_1 = 100;
-        d_rad = crit_rad/nop_1;
+        d_rad = self.crit_rad/nop_1;
 
         # number of points for the 3rd part of the path (the spoke length)
         nop_3 = 50;
@@ -82,7 +84,6 @@ class PathPlanning:
             path2 = [];
             path3 = [];
             cv = [];
-            order = 1;
 
             if(i%2):
                 angle_off = i*d_angle;
@@ -103,8 +104,8 @@ class PathPlanning:
             cv.append([cr_x,cr_y]);
 
             # add the extension to the path 1 to the control points (off path)
-            cr_x_ext = (crit_rad + ctl_ext[0])*math.cos((base_angle+angle_off));
-            cr_y_ext = (crit_rad + ctl_ext[0])*math.sin((base_angle+angle_off));
+            cr_x_ext = (self.crit_rad + ctl_ext[0])*math.cos((base_angle+angle_off));
+            cr_y_ext = (self.crit_rad + ctl_ext[0])*math.sin((base_angle+angle_off));
             cv.append([cr_x_ext,cr_y_ext]);
             
             # add the extension to the spoke path to the control points (off path)
@@ -134,30 +135,17 @@ class PathPlanning:
             sleep(0.1);    
             if len(self.paths) > 2:
                 path_dist = ss.distance.cdist(path2, self.paths[-3].points[nop_1:-1]);
-                max_dist = path_dist.max();
                 coll_index =  np.where(path_dist < 2*ugv_rad);
                 while(len(coll_index[0]) > 0):
                     # get the point where the collision will occur
-                    coll_point = path2[coll_index[0][0]];
                     path2_np = np.array(path2);
-                    # coll_dist_to_rad = math.dist(coll_point, cv[0]);
-                    # coll_dist_to_spoke = math.dist(coll_point, self.paths[-3].points[-1]);
 
-
-                    # if(max_dist > 5*ugv_rad):
-                    #     too_far_index =  np.where(path2 == max_dist);
-                    #     too_far_point = path2[too_far_index[0][0]];
-                    #     too_far_dist_to_rad =  math.dist(too_far_point, cv[0]);
-                    #     too_far_dist_to_spoke =  math.dist(too_far_point, cv[3]);
-                    #     side = "rad" if (too_far_dist_to_spoke<too_far_dist_to_rad) else "spoke"
-                    
                     coll_dist_to_rad = np.sum(np.sqrt(np.diff(path2_np[0:coll_index[0][0],0])**2 + np.diff(path2_np[0:coll_index[0][0],1])**2))
                     coll_dist_to_spoke = 0.7*(np.sum(np.sqrt(np.diff(path2_np[coll_index[0][0]:-1,0])**2 + np.diff(path2_np[coll_index[0][0]:-1,1])**2)))
-                    side = "rad" if (coll_dist_to_rad<coll_dist_to_spoke) else "spoke"
                     
-                    ctl_ext = self._get_ext_coef(ugv_rad, ctl_ext, side);
-                    cr_x_ext = (crit_rad + ctl_ext[0])*math.cos((base_angle+angle_off));
-                    cr_y_ext = (crit_rad + ctl_ext[0])*math.sin((base_angle+angle_off));
+                    ctl_ext = self._get_ext_coef(ugv_rad, ctl_ext, "rad" if (coll_dist_to_rad<coll_dist_to_spoke) else "spoke");
+                    cr_x_ext = (self.crit_rad + ctl_ext[0])*math.cos((base_angle+angle_off));
+                    cr_y_ext = (self.crit_rad + ctl_ext[0])*math.sin((base_angle+angle_off));
                     cv[1] = np.array([cr_x_ext,cr_y_ext]);
 
                     sp_x_ext = shape.midpoints[shape_i,0] + (spoke_len + ctl_ext[1])*shape.norms[shape_i,0];
