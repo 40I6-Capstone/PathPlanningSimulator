@@ -144,7 +144,6 @@ class MapWindow(QMainWindow):
     def updatePath(self):
         if(not self.crit_rad == self.pathPlan.crit_rad):
             self.crit_rad = self.pathPlan.crit_rad;
-            print("crit rad", self.crit_rad)
             critRadPoints = self.plot_crit_rad();
             self.critRadPlot.setData(critRadPoints[:,0], critRadPoints[:,1]);
 

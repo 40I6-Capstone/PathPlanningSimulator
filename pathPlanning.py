@@ -65,9 +65,10 @@ class PathPlanning:
         d_angle = 2*math.asin((1.05*(ugv_rad/2))/crit_rad);
 
         # keep values within a certain angle
-        if(2* d_angle * num_of_paths > math.pi):
+        if(d_angle * num_of_paths > math.pi/6):
             d_angle = math.pi / (3*num_of_paths);
             self.crit_rad = 1.05*(ugv_rad/2)/math.sin(d_angle/2);
+            print(f'New Crit Radius {self.crit_rad}');
 
         
         # number of points for 1st part of the path (in the crit circle)
