@@ -14,6 +14,9 @@ class Robot(ABC):
         self.isReturning = False
         self.pathComplete = False
         self.posArr = np.array([0,0]);
+        self.started = False;
+        self.stopped = True;
+
 
 
     # Update the robots position, dt seconds into the future
@@ -24,6 +27,7 @@ class Robot(ABC):
     def reset(self):
         self.pathComplete = False
         self.isReturning = False
+        self.started = False
         self.nextPointIndex = 1
         self.heading = 0
         
@@ -37,10 +41,10 @@ class Robot(ABC):
         self.path = path
         self.pathIndex = pathIndex
         self.reset()
-
+        
     def setPosAtTime(self, i):
         self.pos = self.posArr[i];
-        
+    
 
     # Compute the distance between two points as a scalar distance
     def calcDist(self,p1,p2):
@@ -82,7 +86,7 @@ class Robot(ABC):
         return self.calcDist(point,self.pos)
 
     def checkCriticalRad(self, criticalRad):
-        return True if self.getDistanceTo(np.array([0,0])) < criticalRad else False
+        return True if self.getDistanceTo(np.array([0,0])) < criticalRad and self.started else False
 
     def checkCollision(self, robots):
         for robot in robots:

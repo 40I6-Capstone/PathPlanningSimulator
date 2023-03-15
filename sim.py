@@ -58,9 +58,16 @@ class Sim:
     def runSim(self):
         for currTime in self.time:
             # print(f'Time: {self.time:.3f}')
+            robot_in_cr = any([robot.checkCriticalRad(self.pathPlan.crit_rad) for robot in self.robots]);
             for index,robot in enumerate(self.robots):
                 # Move a robot
                 # print(f'Node[{index}] Pos: {robot.pos}')
+                # print(f'index {index} is started {robot.started}');
+                if(not (robot.started or robot_in_cr)):
+                    robot.stopped = False;
+                    robot_in_cr = True;
+
+
                 robot.update(self.dt)
                 # Update a nodes path, if the current one is complete
                 if(robot.pathComplete and robot.pathIndex < len(self.scheduler.assignedPathIndexes[index])-1 ):

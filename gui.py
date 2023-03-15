@@ -120,7 +120,6 @@ class MapWindow(QMainWindow):
             elif(self.isPlaying):
                 sleep(self.sim.dt);
                 self.time = self.time + self.sim.dt;
-                print("time",self.time);
                 self.sim.getPos(self.time);
                 self.updateRobotPosSignal.emit();
 

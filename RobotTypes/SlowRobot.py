@@ -19,6 +19,13 @@ class SlowRobot(Robot):
     def update(self,dt):
         # Create a vector from current position to next with a magnitude of velocity
         timeLeft = dt;
+        if(self.stopped):
+            self.posArr = np.vstack([self.posArr, self.pos]);
+            return;
+
+        if(not self.started):
+            self.started = True;
+        
         if(self.atNextPoint()):
             self.incrementNextPoint()
         while timeLeft > 0 and not(self.pathComplete):
