@@ -25,7 +25,8 @@ class Sim:
         self.simTime = 15 # Total Simulation time
         self.time = np.arange(0, self.simTime, self.dt) # Current Time in simulation
         self.nodeCount = 3
-
+        self.robotInCrit = None;
+        self.critQueue = [];
 
 
         # TODO set test shape
@@ -64,17 +65,40 @@ class Sim:
                 # print(f'Node[{index}] Pos: {robot.pos}')
                 # print(f'index {index} is started {robot.started}');
                 if(not (robot.started or robot_in_cr)):
-                    robot.stopped = False;
+                    robot.start();
                     robot_in_cr = True;
 
+                robot.update(self.dt);
 
-                robot.update(self.dt)
+                if(robot.stopped and self.robotInCrit == index):
+                    if(len(self.critQueue)>0):
+                        self.robotInCrit = self.critQueue.pop();
+                        self.robots[self.robotInCrit].start();
+                    else: 
+                        self.robotInCrit = None; 
+                
+                if(robot.checkCriticalRad(self.pathPlan.crit_rad)):
+                    if(self.robotInCrit == None):
+                        self.robotInCrit = index;
+                    elif(not self.robotInCrit == index):
+                        self.critQueue.append(index);
+                        robot.stop();
+                elif(self.robotInCrit == index):
+                    if(len(self.critQueue)>0):
+                        self.robotInCrit = self.critQueue.pop();
+                        self.robots[self.robotInCrit].start();
+                    else: 
+                        self.robotInCrit = None;
+
+                
                 # Update a nodes path, if the current one is complete
                 if(robot.pathComplete and robot.pathIndex < len(self.scheduler.assignedPathIndexes[index])-1 ):
                     newPathIndex = robot.pathIndex + 1
                     pathPoints = self.pathPlan.paths[self.scheduler.assignedPathIndexes[index][newPathIndex]].points
                     robot.setPath(pathPoints,newPathIndex)
                     robot.setPos(pathPoints[0])
+                elif(robot.pathComplete):
+                    robot.stop();
             # print("---------------------")
 
 

@@ -27,10 +27,14 @@ class Robot(ABC):
     def reset(self):
         self.pathComplete = False
         self.isReturning = False
-        self.started = False
         self.nextPointIndex = 1
         self.heading = 0
-        
+
+    def start(self):
+        self.stopped = False;
+
+    def stop(self):
+        self.stopped = True;        
 
     # Set current position, passed as in a numpy array
     def setPos(self,point):
@@ -86,7 +90,7 @@ class Robot(ABC):
         return self.calcDist(point,self.pos)
 
     def checkCriticalRad(self, criticalRad):
-        return True if self.getDistanceTo(np.array([0,0])) < criticalRad and self.started else False
+        return True if self.getDistanceTo(np.array([0,0])) < criticalRad and not self.stopped else False
 
     def checkCollision(self, robots):
         for robot in robots:
