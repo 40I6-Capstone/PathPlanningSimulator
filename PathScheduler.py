@@ -43,7 +43,7 @@ class PathScheduler:
         # for index, path in enumerate(self.paths):
         #     path.presortIndex = index; 
         # Sort paths by cost, largest first
-        self.paths.sort(key= (lambda path: path.length), reverse=True)
+        # self.paths.sort(key= (lambda path: path.length), reverse=True)
         mean = self.getMeanCost(costFunction)
         # Iterate thorugh the paths
         nodeIndex = 0

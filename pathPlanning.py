@@ -45,53 +45,58 @@ class TestShape:
         self.norms = np.array(norms);
 
 class Path:
-    def __init__(self, points):
+    def __init__(self, points, set):
         self.points = points;
-        self.length = np.sum(np.sqrt(np.diff(points[:,0])**2 + np.diff(points[:,1])**2))       
+        self.length = np.sum(np.sqrt(np.diff(points[:,0])**2 + np.diff(points[:,1])**2))
+        self.set = set       
 
 class PathPlanning:
     def __init__(self):
         self.paths = [];
         
-    def planPath(self, shape:TestShape, crit_rad, ugv_rad, spoke_len, signal):
+    def planPath(self, shape:TestShape, ugv_rad, spoke_len, num_of_ugvs, signal):
         # calculate the angle from the origin to the centre of the shape
         base_angle = math.atan(shape.centre[1]/shape.centre[0]);
         # calculate how many paths we need to plan
         num_of_paths = len(shape.midpoints);
 
-        self.crit_rad = crit_rad;
+        num_of_paths_in_section = math.ceil(num_of_paths/(2*num_of_ugvs));
+
+        curr_set_pair = 0;
+
+        paths_by_set = [[] for _ in range(2*num_of_ugvs)];
 
         # calculate the angle the ugv's will leave from the origin for its own lane
-        d_angle = 2*math.asin((1.05*(ugv_rad/2))/crit_rad);
-
-        # keep values within a certain angle
-        if(d_angle * num_of_paths > math.pi/6):
-            d_angle = math.pi / (3*num_of_paths);
-            self.crit_rad = 1.05*(ugv_rad/2)/math.sin(d_angle/2);
-            print(f'New Crit Radius {self.crit_rad}');
-
+        d_angle = math.pi / (6*num_of_ugvs);
+        self.crit_rad = 1.05*(ugv_rad/2)/math.sin(d_angle/2);
+        print(f'Crit Radius {self.crit_rad}');
         
         # number of points for 1st part of the path (in the crit circle)
-        nop_1 = 100;
-        d_rad = self.crit_rad/nop_1;
+        nop_1 = 3;
+        d_rad = self.crit_rad/(nop_1-1);
 
         # number of points for the 3rd part of the path (the spoke length)
-        nop_3 = 50;
-        d_len_3 = spoke_len/50;
-
+        nop_3 = 3;
+        d_len_3 = spoke_len/(nop_3-1);
 
         for i in range(num_of_paths):
-            path1 = [[0,0]];
+            if(i % (num_of_paths_in_section*2) == 0 and not i == 0):
+
+                curr_set_pair += 1;
+            path1 = [];
             path2 = [];
             path3 = [];
             cv = [];
 
             if(i%2):
-                angle_off = i*d_angle;
+                # angle_off = i*d_angle;
+                curr_set = 2*curr_set_pair;
+                angle_off = (2*curr_set_pair+1)*d_angle;
                 shape_i = int(-(i+1)/2);
-
             else:
-                angle_off = -(i + 1)*d_angle;
+                # angle_off = -(i + 1)*d_angle;
+                curr_set = 2*curr_set_pair+1;
+                angle_off = -(2*curr_set_pair+1)*d_angle;
                 shape_i = int(i/2);
             
             ctl_ext = self._get_ext_coef(ugv_rad);
@@ -130,19 +135,27 @@ class PathPlanning:
             path2 = self._b_spline(cv);
 
             # concatenate the 3 path parts to get the complete path and add it to the path list 
-            path = Path(np.array(path1+path2+path3))
+            path = Path(np.array(path1+path2+path3), curr_set)
             self.paths.append(path);
             signal.emit();
-            sleep(0.1);    
-            if len(self.paths) > 2:
-                path_dist = ss.distance.cdist(path2, self.paths[-3].points[nop_1:-1]);
+            sleep(0.01);    
+            if curr_set > 1:
+                all_points = np.concatenate([x.points[nop_1:-1] for x in paths_by_set[curr_set-2]], axis=0);
+                path_dist = ss.distance.cdist(path2, all_points);
                 coll_index =  np.where(path_dist < 2*ugv_rad);
                 while(len(coll_index[0]) > 0):
                     # get the point where the collision will occur
                     path2_np = np.array(path2);
 
+                    if(i > num_of_paths-2 and num_of_paths%2):
+                        k=3
+                    elif((i > num_of_paths-4 and num_of_paths%2) or (i > num_of_paths-3 and not num_of_paths%2)):
+                        k=1.5
+                    else:
+                        k = 3
+
                     coll_dist_to_rad = np.sum(np.sqrt(np.diff(path2_np[0:coll_index[0][0],0])**2 + np.diff(path2_np[0:coll_index[0][0],1])**2))
-                    coll_dist_to_spoke = 0.7*(np.sum(np.sqrt(np.diff(path2_np[coll_index[0][0]:-1,0])**2 + np.diff(path2_np[coll_index[0][0]:-1,1])**2)))
+                    coll_dist_to_spoke = k*(np.sum(np.sqrt(np.diff(path2_np[coll_index[0][0]:-1,0])**2 + np.diff(path2_np[coll_index[0][0]:-1,1])**2)))
                     
                     ctl_ext = self._get_ext_coef(ugv_rad, ctl_ext, "rad" if (coll_dist_to_rad<coll_dist_to_spoke) else "spoke");
                     cr_x_ext = (self.crit_rad + ctl_ext[0])*math.cos((base_angle+angle_off));
@@ -154,14 +167,16 @@ class PathPlanning:
                     cv[2] = np.array([sp_x_ext,sp_y_ext]);
 
                     path2 = self._b_spline(cv);
-                    path_dist = ss.distance.cdist(path2, self.paths[-3].points[nop_1:-1]);
+                    path_dist = ss.distance.cdist(path2, all_points);
                     coll_index =  np.where(path_dist < 2*ugv_rad);
 
                     # concatenate the 3 path parts to get the complete path and add it to the path list 
-                    path = Path(np.array(path1+path2+path3))
+                    path = Path(np.array(path1+path2+path3), curr_set)
                     self.paths[-1] = path;
                     signal.emit();
-                    sleep(0.1);    
+                    sleep(0.01);    
+            paths_by_set[curr_set].append(path);
+        self.paths.sort(key= (lambda path: path.length), reverse=True)
       
     
     # function to get how much the control points should extend by from the anchor points
@@ -178,7 +193,7 @@ class PathPlanning:
             return np.array([ctl_rad_ext, ctl_spoke_ext]);
 
     def _b_spline(self, cv):
-        n=1000;
+        n=50;
         cv = np.asarray(cv);
         count = cv.shape[0];
         degree = 2;

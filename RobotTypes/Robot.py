@@ -8,7 +8,6 @@ class Robot(ABC):
         self.pos = np.array([0,0])
         self.heading = 0
         self.path = np.array([[0,0]])
-        self.pathIndex = 0
         self.radius = radius
         self.nextPointIndex = 1
         self.isReturning = False
@@ -41,9 +40,8 @@ class Robot(ABC):
         self.pos = point
         self.reset()
     # Set the path being tracked, passed as a 2d numpy array
-    def setPath(self,path,pathIndex):
+    def setPath(self,path):
         self.path = path
-        self.pathIndex = pathIndex
         self.reset()
         
     def setPosAtTime(self, i):

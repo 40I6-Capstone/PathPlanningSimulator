@@ -14,19 +14,20 @@ class Sim:
         
         #get shape data from file
         # shape_data_file =  open(sys.argv[1], "r");
-        shape_data_file =  open("close_hex.txt", "r");
-        # shape_data_file =  open("far16.txt", "r");
+        # shape_data_file =  open("close_hex.txt", "r");
+        shape_data_file =  open("far16.txt", "r");
 
         shape_data_str = shape_data_file.read();
         shape_data = ast.literal_eval(shape_data_str);
 
         self.robotRad = 5 # Robot radius in meters
         self.dt = 0.02 # Simulation timestep
-        self.simTime = 15 # Total Simulation time
+        self.simTime = 50 # Total Simulation time
         self.time = np.arange(0, self.simTime, self.dt) # Current Time in simulation
         self.nodeCount = 3
         self.robotInCrit = None;
         self.critQueue = [];
+        self.ugvOnSet = [-1] * self.nodeCount;
 
 
         # TODO set test shape
@@ -49,8 +50,14 @@ class Sim:
 
         # Inital path assignments
         for robotIndex, robot in enumerate(self.robots):
-            pathPoints = self.pathPlan.paths[self.scheduler.assignedPathIndexes[robotIndex][0]].points
-            robot.setPath(pathPoints,0)
+            i = 0;
+            while(self.pathPlan.paths[self.scheduler.assignedPathIndexes[robotIndex][i]].set in self.ugvOnSet):
+                i+=1;
+            pathPoints = self.pathPlan.paths[self.scheduler.assignedPathIndexes[robotIndex][i]].points
+            self.ugvOnSet[robotIndex] = self.pathPlan.paths[self.scheduler.assignedPathIndexes[robotIndex][i]].set
+            self.scheduler.assignedPathIndexes[robotIndex].remove(self.scheduler.assignedPathIndexes[robotIndex][i])
+            print(robotIndex, self.ugvOnSet, self.scheduler.assignedPathIndexes[robotIndex][i]);
+            robot.setPath(pathPoints)
             # print(pathPoints)
             robot.setPos(pathPoints[0])
 
@@ -92,10 +99,19 @@ class Sim:
 
                 
                 # Update a nodes path, if the current one is complete
-                if(robot.pathComplete and robot.pathIndex < len(self.scheduler.assignedPathIndexes[index])-1 ):
-                    newPathIndex = robot.pathIndex + 1
-                    pathPoints = self.pathPlan.paths[self.scheduler.assignedPathIndexes[index][newPathIndex]].points
-                    robot.setPath(pathPoints,newPathIndex)
+                if(robot.pathComplete and len(self.scheduler.assignedPathIndexes[index]) > 1 ):
+                    self.ugvOnSet[index] = -1;
+                    i = 0;
+                    while(self.pathPlan.paths[self.scheduler.assignedPathIndexes[index][i]].set in self.ugvOnSet):
+                        i+=1;
+                    pathPoints = self.pathPlan.paths[self.scheduler.assignedPathIndexes[index][i]].points
+                    self.ugvOnSet[index] = self.pathPlan.paths[self.scheduler.assignedPathIndexes[index][i]].set
+                    self.scheduler.assignedPathIndexes[index].remove(self.scheduler.assignedPathIndexes[index][i])
+                    print(index, self.ugvOnSet, self.scheduler.assignedPathIndexes[index][i]);
+
+                    # pathPoints = self.pathPlan.paths[self.scheduler.assignedPathIndexes[index][newPathIndex]].points
+                    
+                    robot.setPath(pathPoints)
                     robot.setPos(pathPoints[0])
                 elif(robot.pathComplete):
                     robot.stop();
@@ -113,6 +129,7 @@ class Sim:
 
     def getPos(self, time):
         result = np.where(abs(self.time - time) < 0.0001);
+        if(len(result) == 0): return;
         i = result[0][0];
         for robot in self.robots:
             robot.setPosAtTime(i);

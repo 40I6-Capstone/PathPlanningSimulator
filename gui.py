@@ -27,6 +27,7 @@ class MapWindow(QMainWindow):
         infoText.setObjectName("PlainText"); 
 
         self.mapPlot = pg.PlotWidget();
+        self.mapPlot.setBackground('white');
 
         self.sim = simulation;
         
@@ -105,7 +106,7 @@ class MapWindow(QMainWindow):
 
 
         self.pathPlan = PathPlanning();
-        self.pathPlan.planPath(self.sim.shape, self.env_data["crit_rad"], self.sim.robotRad, self.env_data["spoke_len"], self.updatePathSignal);
+        self.pathPlan.planPath(self.sim.shape, self.env_data["crit_rad"], self.sim.robotRad, self.env_data["spoke_len"], self.sim.nodeCount, self.updatePathSignal);
 
         self.sim.setPath(self.pathPlan);
         self.sim.nodeSetup();
